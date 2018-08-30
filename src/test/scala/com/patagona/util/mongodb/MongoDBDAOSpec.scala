@@ -8,6 +8,8 @@ import org.mongodb.scala.model.BulkWriteOptions
 import org.mongodb.scala.model.UpdateOneModel
 import org.mongodb.scala.model.UpdateOptions
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class MongoDBDAOSpec extends FlatSpec with MustMatchers with MongoDBTest with MongoDBTestUtils {
   "MongoDBDAO" should "set fields in a safe way for mongodb" in withMongoDB { mdb =>
     val dao = new MongoDBDAO {

@@ -13,6 +13,8 @@ import org.scalatest.FlatSpec
 import org.scalatest.MustMatchers
 import org.scalatest.concurrent.ScalaFutures
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class ExtendedBsonValueSpec
     extends FlatSpec with MustMatchers with MongoDBTest with MongoDBTestUtils with ScalaFutures {
   val dbObject = ExtendedObject(null) // scalastyle:ignore null
@@ -78,17 +80,17 @@ class ExtendedBsonValueSpec
     )
   }
 
-  it must "deserialize DateTime objects" in withMongoDBCollection("ExtendedObject") { testCollection =>
+  it must "deserialize DateTime objects" in withMongoDB { db =>
+    val collection = db.getCollection("ExtendedObject")
     val expectedObject = TestClassWithDate(DateTime.parse("2016-04-14T13:27:32.779Z"))
 
-    whenCompleted(testCollection.insertOne(BsonDocument("creationDate" -> expectedObject.creationDate.toDate))) { _ =>
-      whenFound[BsonValue](testCollection.find()) { docs =>
+    whenCompleted(collection.insertOne(BsonDocument("creationDate" -> expectedObject.creationDate.toDate))) { _ =>
+      whenFound(collection.find()) { docs =>
         docs must have size 1
 
         val doc = docs.head
-        doc.isDocument must be(true)
-        doc.asDocument.containsKey("creationDate") must be(true)
-        ExtendedBsonValue(doc).deserialize[TestClassWithDate] must be(expectedObject)
+        doc.containsKey("creationDate") must be(true)
+        ExtendedBsonValue(doc.toBsonDocument).deserialize[TestClassWithDate] must be(expectedObject)
       }
     }
   }
@@ -100,18 +102,17 @@ class ExtendedBsonValueSpec
     ExtendedObject(o).serialize must be(expected)
   }
 
-  it must "serialize and deserialize objects with date time" in withMongoDBCollection("ExtendedObject") {
-    testCollection =>
-      val expectedObject = TestClassWithDate(DateTime.parse("2016-04-14T13:27:32.779Z"))
+  it must "serialize and deserialize objects with date time" in withMongoDB { db =>
+    val collection = db.getCollection("ExtendedObject")
+    val expectedObject = TestClassWithDate(DateTime.parse("2016-04-14T13:27:32.779Z"))
 
-      whenCompleted(testCollection.insertOne(ExtendedObject(expectedObject).serialize)) { _ =>
-        whenFound(testCollection.find()) { docs =>
-          docs must have size 1
+    whenCompleted(collection.insertOne(ExtendedObject(expectedObject).serialize.asDocument())) { _ =>
+      whenFound(collection.find()) { docs =>
+        docs must have size 1
 
-          docs.head.isDocument must be(true)
-          ExtendedBsonValue(docs.head.asDocument).deserialize[TestClassWithDate] must be(expectedObject)
-        }
+        ExtendedBsonValue(docs.head.toBsonDocument).deserialize[TestClassWithDate] must be(expectedObject)
       }
+    }
   }
 
   it must "serialize and deserialize arrays" in {

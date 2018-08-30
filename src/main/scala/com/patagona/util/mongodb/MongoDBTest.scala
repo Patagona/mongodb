@@ -3,21 +3,13 @@ package com.patagona.util.mongodb
 import java.util.UUID
 
 import com.patagona.util.mongodb.setup.MongoDBConfig
-import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.MongoDatabase
-import org.mongodb.scala.bson.BsonValue
 
 import scala.concurrent.Await
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 trait MongoDBTest {
-  def withMongoDBCollection[A](collection: String)(f: MongoCollection[BsonValue] => A): A = {
-    withMongoDBSetup { (client, _) =>
-      f(client.getCollection[BsonValue](collection))
-    }
-  }
-
   def withMongoDB[A](f: MongoDatabase => A): A = withMongoDBSetup { (client, _) =>
     f(client)
   }

@@ -46,6 +46,7 @@ pipeline {
         }
 
         stage('Publish'){
+            when { branch 'master' }
             steps{
                 sh "sbt ${SBT_FLAGS} publish"
             }

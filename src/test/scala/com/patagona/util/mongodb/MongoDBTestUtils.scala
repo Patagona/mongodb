@@ -8,7 +8,7 @@ import org.scalatest.concurrent.ScalaFutures
 import scala.concurrent.duration._
 
 trait MongoDBTestUtils extends ScalaFutures {
-  def whenCompleted(observable: SingleObservable[Completed], timeoutDuration: FiniteDuration = 1 seconds)(
+  def whenCompleted(observable: SingleObservable[Completed], timeoutDuration: FiniteDuration = 10 seconds)(
     f: Completed => Unit
   ): Unit = {
     whenReady(observable.toFuture, timeout(timeoutDuration)) { completed =>
@@ -16,7 +16,7 @@ trait MongoDBTestUtils extends ScalaFutures {
     }
   }
 
-  def whenFound[A](observable: FindObservable[A], timeoutDuration: FiniteDuration = 1 seconds)(
+  def whenFound[A](observable: FindObservable[A], timeoutDuration: FiniteDuration = 10 seconds)(
     f: Seq[A] => Unit
   ): Unit = {
     whenReady(observable.toFuture, timeout(timeoutDuration)) { result =>

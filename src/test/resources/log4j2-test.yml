@@ -1,0 +1,18 @@
+Configuration:
+  Appenders:
+    Console:
+      PatternLayout:
+        pattern: '%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n'
+      name: Console
+      target: SYSTEM_OUT
+  Loggers:
+    Root:
+      level: error
+      AppenderRef:
+      - ref: Console
+    Logger:
+      - name: com.patagona
+        level: error
+        additivity: false
+        AppenderRef:
+          - ref: Console

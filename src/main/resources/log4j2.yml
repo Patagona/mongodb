@@ -1,0 +1,21 @@
+Configuration:
+  Appenders:
+    Console:
+      LogstashLayout:
+        templateUri: "classpath:CustomLogstashEventLayout.json"
+        stackTraceEnabled: "true"
+        locationInfoEnabled: "true"
+
+      name: Console
+      target: SYSTEM_OUT
+  Loggers:
+    Root:
+      level: warn
+      AppenderRef:
+      - ref: Console
+    Logger:
+      - name: com.patagona
+        level: trace
+        additivity: false
+        AppenderRef:
+          - ref: Console

@@ -48,8 +48,8 @@ addCommandAlias("cc", ";clean;compile")
 addCommandAlias("fc", ";test:scalafmt;scalafmt")
 
 publishTo in ThisBuild := {
-  val prefix = sys.props.get("publish.repository.prefix").map(_ + "/").getOrElse("unspecified_artifacts_location/")
-  Some(s3resolver.value("Patagona " + prefix + " S3 bucket", s3("patagona.repository/" + prefix)).withIvyPatterns)
+  val prefix = sys.props.get("branch.name").map("build_artifacts/"+_+"/").getOrElse("unspecified_artifacts_location/")
+  Some(s3resolver.value("Patagona "+prefix+" S3 bucket", s3("patagona.repository/"+prefix)).withIvyPatterns)
 }
 
 publishMavenStyle in ThisBuild := false

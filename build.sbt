@@ -32,8 +32,6 @@ libraryDependencies ++= Seq(
   "com.google.inject"                % "guice"                   % Versions.guice force ()
 )
 
-publishArtifact in Test := false
-
 Keys.fork in (ThisBuild, Test) := true
 
 updateOptions := updateOptions.value.withCachedResolution(true)
@@ -56,4 +54,5 @@ publishMavenStyle in ThisBuild := false
 
 cleanKeepFiles ++= Seq("resolution-cache", "streams").map(target.value / _)
 
+publishArtifact in Test := true
 publishArtifact in (ThisBuild, Test) := true

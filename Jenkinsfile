@@ -76,6 +76,6 @@ def tagGitCommit(tag) {
 
 def pushGitTag(credentials, tag) {
     withCredentials([usernameColonPassword(credentialsId: credentials, variable: 'LOGIN')]) {
-        sh "git push 'https://${LOGIN}@github.com/Patagona/ebay-integration.git' '${tag}'"
+        sh "git push 'https://${LOGIN}@github.com/Patagona/mongodb.git' '${tag}'"
     }
 }

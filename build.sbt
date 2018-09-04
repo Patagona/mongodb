@@ -45,14 +45,12 @@ javaOptions in (ThisBuild, Test) ++= Seq("-Xmx2G", "-Dfile.encoding=UTF-8")
 addCommandAlias("cc", ";clean;compile")
 addCommandAlias("fc", ";test:scalafmt;scalafmt")
 
+publishMavenStyle in ThisBuild := false
+publishArtifact in(ThisBuild, Test) := true
+publishArtifact in Test := true
 publishTo in ThisBuild := {
-  val prefix = sys.props.get("branch.name").map("build_artifacts/"+_+"/").getOrElse("unspecified_artifacts_location/")
-  Some(s3resolver.value("Patagona "+prefix+" S3 bucket", s3("patagona.repository/"+prefix)).withIvyPatterns)
+  val prefix = sys.props.get("branch.name").map("build_artifacts/" + _ + "/").getOrElse("unspecified_artifacts_location/")
+  Some(s3resolver.value("Patagona " + prefix + " S3 bucket", s3("patagona.repository/" + prefix)).withIvyPatterns)
 }
 
-publishMavenStyle in ThisBuild := false
-
 cleanKeepFiles ++= Seq("resolution-cache", "streams").map(target.value / _)
-
-publishArtifact in Test := true
-publishArtifact in (ThisBuild, Test) := true

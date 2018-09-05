@@ -17,7 +17,8 @@ trait InMemoryCRUD extends ObservableImplicits with Loggable {
     keys: Map[String, String]
   )(data: A)(conversion: A => BsonValue)(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
     require(keys.nonEmpty, "Keys must not be empty when updating a document")
-    trace(s"[InMemoryCRUD] Upserted $keys -> $data")
+    debug(s"[InMemoryCRUD] Upserted $keys -> $data")
+    trace(s"[InMemoryCRUD] Stored state after upsert: $store")
     store = store.updated(keys, context.schemaVersion -> BsonDocument("data" -> conversion(data)))
     Future.successful(data)
   }
@@ -32,7 +33,8 @@ trait InMemoryCRUD extends ObservableImplicits with Loggable {
         require(schemaVersion == context.schemaVersion)
         keys -> extractData(conversion)(document)
     }
-    trace(s"[InMemoryCRUD] Read $keys -> $result")
+    debug(s"[InMemoryCRUD] Read $keys -> $result")
+    trace(s"[InMemoryCRUD] Stored state after read: $store")
     Future.successful(result)
   }
 
@@ -50,7 +52,8 @@ trait InMemoryCRUD extends ObservableImplicits with Loggable {
           key -> extractData(conversion)(document)
       }
     val totalSize = result.size
-    trace(s"[InMemoryCRUD] ReadMany $keys -> ${result.takeRight(totalSize - start).take(limit)}")
+    debug(s"[InMemoryCRUD] ReadMany $keys -> ${result.takeRight(totalSize - start).take(limit)}")
+    trace(s"[InMemoryCRUD] Stored state after readMany: $store")
     Future.successful(result.takeRight(totalSize - start).take(limit))
   }
 
@@ -63,7 +66,8 @@ trait InMemoryCRUD extends ObservableImplicits with Loggable {
       }
       .count { case (_, (schemaVersion, _)) => schemaVersion == context.schemaVersion }
 
-    trace(s"[InMemoryCRUD] Counted $keys -> $count")
+    debug(s"[InMemoryCRUD] Counted $keys -> $count")
+    trace(s"[InMemoryCRUD] Stored state after count: $store")
 
     Future.successful(count)
   }

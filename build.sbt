@@ -29,7 +29,8 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % Versions.jackson,
   "com.vlkan.log4j2"                 % "log4j2-logstash-layout"  % Versions.log4j2LogstashLayout,
   "net.codingwell"                   %% "scala-guice"            % "4.0.0-beta5" exclude ("com.google.code.findbugs", "jsr305"),
-  "com.google.inject"                % "guice"                   % Versions.guice force ()
+  "com.google.inject"                % "guice"                   % Versions.guice force (),
+  "patagona"                         %% "core"                   % Versions.patagonaApi
 )
 
 Keys.fork in (ThisBuild, Test) := true

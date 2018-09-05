@@ -1,5 +1,6 @@
 package com.patagona.util.mongodb.dao
 
+import com.patagona.util.core.Loggable
 import org.mongodb.scala.ObservableImplicits
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.bson.BsonValue
@@ -7,7 +8,7 @@ import org.mongodb.scala.bson.BsonValue
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-trait InMemoryCRUD extends ObservableImplicits {
+trait InMemoryCRUD extends ObservableImplicits with Loggable {
   self: CRUD =>
 
   var store: Map[Map[String, String], (String, BsonDocument)] = Map()
@@ -16,6 +17,7 @@ trait InMemoryCRUD extends ObservableImplicits {
     keys: Map[String, String]
   )(data: A)(conversion: A => BsonValue)(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
     require(keys.nonEmpty, "Keys must not be empty when updating a document")
+    trace(s"[InMemoryCRUD] Upserted $keys -> $data")
     store = store.updated(keys, context.schemaVersion -> BsonDocument("data" -> conversion(data)))
     Future.successful(data)
   }
@@ -30,6 +32,7 @@ trait InMemoryCRUD extends ObservableImplicits {
         require(schemaVersion == context.schemaVersion)
         keys -> extractData(conversion)(document)
     }
+    trace(s"[InMemoryCRUD] Read $keys -> $result")
     Future.successful(result)
   }
 
@@ -47,6 +50,7 @@ trait InMemoryCRUD extends ObservableImplicits {
           key -> extractData(conversion)(document)
       }
     val totalSize = result.size
+    trace(s"[InMemoryCRUD] ReadMany $keys -> ${result.takeRight(totalSize - start).take(limit)}")
     Future.successful(result.takeRight(totalSize - start).take(limit))
   }
 
@@ -58,6 +62,8 @@ trait InMemoryCRUD extends ObservableImplicits {
         keys.size == currentKeys.size && currentKeys.forall { case (key, value) => contains(keys, key, value) }
       }
       .count { case (_, (schemaVersion, _)) => schemaVersion == context.schemaVersion }
+
+    trace(s"[InMemoryCRUD] Counted $keys -> $count")
 
     Future.successful(count)
   }

@@ -17,8 +17,8 @@ libraryDependencies ++= Seq(
   "org.scalacheck"                   %% "scalacheck"             % Versions.scalaCheck % "test",
   "org.scalatest"                    %% "scalatest"              % Versions.scalatest % "test",
   "org.mongodb.scala"                %% "mongo-scala-driver"     % Versions.mongoScalaDriver,
+  "org.json4s"                       %% "json4s-core"            % Versions.json4s,
   "org.json4s"                       %% "json4s-ext"             % Versions.json4s,
-  "org.json4s"                       %% "json4s-mongo"           % Versions.json4s,
   "org.scalacheck"                   %% "scalacheck"             % Versions.scalaCheck % "test",
   "org.slf4j"                        % "slf4j-api"               % Versions.slf4j,
   "org.apache.logging.log4j"         % "log4j-api"               % Versions.log4j,
@@ -46,10 +46,11 @@ addCommandAlias("cc", ";clean;compile")
 addCommandAlias("fc", ";test:scalafmt;scalafmt")
 
 publishMavenStyle in ThisBuild := false
-publishArtifact in(ThisBuild, Test) := true
+publishArtifact in (ThisBuild, Test) := true
 publishArtifact in Test := true
 publishTo in ThisBuild := {
-  val prefix = sys.props.get("branch.name").map("build_artifacts/" + _ + "/").getOrElse("unspecified_artifacts_location/")
+  val prefix =
+    sys.props.get("branch.name").map("build_artifacts/" + _ + "/").getOrElse("unspecified_artifacts_location/")
   Some(s3resolver.value("Patagona " + prefix + " S3 bucket", s3("patagona.repository/" + prefix)).withIvyPatterns)
 }
 

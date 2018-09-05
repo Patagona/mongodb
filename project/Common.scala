@@ -5,7 +5,7 @@ object Versions {
   def mongoScalaDriver: String = "2.4.1"
   def scalatest: String = "3.0.1"
   def scala: String = "2.11.8"
-  def json4s: String = "3.6.0"
+  def json4s: String = "3.2.11"
   def scalaCheck: String = "1.13.5"
   def jodaTime: String = "2.3"
   def slf4j: String = "1.7.25"

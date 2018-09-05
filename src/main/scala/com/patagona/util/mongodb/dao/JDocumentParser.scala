@@ -3,6 +3,8 @@ package com.patagona.util.mongodb.dao
 import java.util.Date
 import java.util.concurrent.atomic.AtomicReference
 
+import com.mongodb.{BasicDBList, BasicDBObject}
+import com.patagona.util.mongodb.dao.json4s.Meta
 import org.bson.types.ObjectId
 import org.json4s.Formats
 import org.json4s.JArray
@@ -17,7 +19,6 @@ import org.json4s.JsonAST.JDouble
 import org.json4s.JsonAST.JInt
 import org.json4s.JsonAST.JString
 import org.json4s.ParserUtil.ParseException
-import org.json4s.mongo.JObjectParser
 import org.mongodb.scala.bson.BsonArray
 import org.mongodb.scala.bson.BsonBoolean
 import org.mongodb.scala.bson.BsonDateTime
@@ -62,6 +63,7 @@ object JDocumentParser {
   // scalastyle:off cyclomatic.complexity
   private def serialize(a: Any, formats: Formats): JValue = {
     a.asInstanceOf[AnyRef] match {
+      case null => JNull // scalastyle:ignore
       case x: BsonBoolean => JBool(x.getValue)
       case x: BsonDateTime => JObject(JField("$dt", JString(formats.dateFormat.format(new Date(x.getValue)))))
       case x: BsonDecimal128 => JDecimal(x.decimal128Value().bigDecimalValue())
@@ -85,7 +87,18 @@ object JDocumentParser {
           }
         )
       case x: BsonValue => throw new RuntimeException(s"BSON type ${x.getBsonType.name()} -> JValue is not supported")
-      case x => JObjectParser.serialize(x)(formats)
+
+      case x if Meta.Reflection.isPrimitive(x.getClass) => Meta.Reflection.primitive2jvalue(x)
+      case x if Meta.Reflection.isDateType(x.getClass) => Meta.Reflection.datetype2jvalue(x)(formats)
+      case x if Meta.Reflection.isMongoType(x.getClass) => Meta.Reflection.mongotype2jvalue(x)(formats)
+      case x: BasicDBList => JArray(x.asScala.toList.map(x => serialize(x, formats)))
+      case x: BasicDBObject =>
+        JObject(
+          x.keySet.asScala.toList.map { f =>
+            JField(f, serialize(x.get(f), formats))
+          }
+        )
+      case _ => JNothing
     }
   }
   // scalastyle:on cyclomatic.complexity

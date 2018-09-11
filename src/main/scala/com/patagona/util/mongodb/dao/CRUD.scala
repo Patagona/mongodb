@@ -159,7 +159,14 @@ trait CRUD {
 
     val sortedResult = sortBy match {
       case None => totalResult
-      case Some((sortByField, sortOrder)) => totalResult.sort(BsonDocument(sortByField -> sortOrder))
+      case Some((sortByField, sortOrder)) =>
+        val sortKey = if (sortByField.contains(".")) {
+          "data." + sortByField
+        } else {
+          escapeKey(sortByField)
+        }
+
+        totalResult.sort(BsonDocument(sortKey -> sortOrder))
     }
 
     sortedResult

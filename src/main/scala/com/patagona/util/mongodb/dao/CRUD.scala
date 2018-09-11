@@ -144,14 +144,25 @@ trait CRUD {
     query.toFuture
   }
 
-  def readMany[A <: AnyRef](keys: Map[String, Seq[String]], start: Int, limit: Int)(
+  def readMany[A <: AnyRef](
+    keys: Map[String, Seq[String]],
+    start: Int,
+    limit: Int,
+    sortBy: Option[(String, Int)] = None
+  )(
     conversion: BsonValue => A
   )(implicit context: DBContext, ec: ExecutionContext): Future[Seq[(Map[String, String], A)]] = {
     val escapedKeys = keys.map { transformKey(escapeKey) }
     val fields = escapedKeys.map { case (key, values) => in(key, values: _*) }.toSeq
     val query = and(fields: _*)
     val totalResult = context.collection.find(query)
-    totalResult
+
+    val sortedResult = sortBy match {
+      case None => totalResult
+      case Some((sortByField, sortOrder)) => totalResult.sort(BsonDocument(sortByField -> sortOrder))
+    }
+
+    sortedResult
       .skip(start)
       .limit(limit)
       .map { doc =>

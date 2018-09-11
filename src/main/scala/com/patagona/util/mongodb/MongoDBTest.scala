@@ -34,7 +34,7 @@ trait MongoDBTest {
 
   def mongoDBModule(db: MongoDatabase): MongoDBTestModule = new MongoDBTestModule(db)
 
-  def withDAO[A](testBlock: A => Future[Any])(implicit daoBuilder: MongoDatabase => A): Future[Any] = {
+  def withDAO[A](testBlock: A => Any)(implicit daoBuilder: MongoDatabase => A): Any = {
     withMongoDB(db => testBlock(daoBuilder(db)))
   }
 }

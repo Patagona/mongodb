@@ -36,6 +36,16 @@ trait CRUD {
     )
   }
 
+  def insert[A <: AnyRef](
+    keys: Map[String, String]
+  )(data: A)(conversion: A => BsonValue)(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
+    require(keys.nonEmpty, "Keys must not be empty when updating a document")
+    require(!keys.contains("id"), "Internal mongodb identifier is not allowed as key")
+    val document = prepareDocument(keys, context.schemaVersion, data, conversion)
+
+    context.collection.insertOne(document + genCreationDate(document)).toFuture.map(_ => data)
+  }
+
   def upsert[A <: AnyRef](
     keys: Map[String, String]
   )(data: A)(conversion: A => BsonValue)(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
@@ -45,11 +55,7 @@ trait CRUD {
     val document = prepareDocument(keys, context.schemaVersion, data, conversion)
     val upsertParameters = Document(
       "$set" -> document,
-      "$setOnInsert" -> Document(
-        "creationDate" -> Option(document.getString("updateDate")).getOrElse(
-          throw new RuntimeException(s"Could not insert document: No updateDate was generated in ${document.toString}")
-        )
-      )
+      "$setOnInsert" -> Document(genCreationDate(document))
     )
 
     context.collection.updateOne(query, upsertParameters, UpdateOptions().upsert(true)).toFuture.map { result =>
@@ -59,6 +65,12 @@ trait CRUD {
 
       data
     }
+  }
+
+  private def genCreationDate(doc: Document): (String, String) = {
+    "creationDate" -> Option(doc.getString("updateDate")).getOrElse(
+      throw new RuntimeException(s"Could not insert document: No updateDate was generated in ${doc.toString}")
+    )
   }
 
   def escapeKey(key: String): String = {

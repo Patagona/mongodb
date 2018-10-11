@@ -115,7 +115,40 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
       }
     }
 
-    "writing one object" should {
+    "inserting one object" should {
+      "insert the document" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+        crud
+          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .flatMap { _ =>
+            crud.read[String](Map("key" -> "value"))(_ => "")
+          }
+          .map { retrievedValue =>
+            retrievedValue must be(Some(Map("key" -> "value"), "new data"))
+          }
+      }
+
+      "set the creation date" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+        crud
+          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .flatMap { _ =>
+            context.collection
+              .find(Document("_key" -> "value"))
+              .first()
+              .toFuture
+          }
+          .map { doc =>
+            val creationDate = Option(doc.getString("creationDate")).map(DateTime.parse)
+            val updateDate = Option(doc.getString("updateDate")).map(DateTime.parse)
+
+            creationDate must be('defined)
+            creationDate must be(updateDate)
+          }
+      }
+    }
+
+    "upserting one object" should {
       "insert the document" in withMongoDB { db =>
         implicit val context: DBContext = DBContext(db, "test", "1")
         crud

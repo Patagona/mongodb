@@ -67,6 +67,29 @@ trait CRUD {
     }
   }
 
+  def updateKeys(
+    keys: Map[String, String],
+    updatedKeys: Map[String, String]
+  )(implicit context: DBContext, ec: ExecutionContext): Future[Boolean] = {
+    require(keys.nonEmpty, "Keys must not be empty when updating a document")
+    require(!keys.contains("id"), "Internal mongodb identifier is not allowed as key")
+
+    require(updatedKeys.nonEmpty, "New keys must not be empty when updating a document")
+    require(!updatedKeys.contains("id"), "Internal mongodb identifier is not allowed as new key")
+
+    val query = buildQuery(keys)
+    val document = buildQuery(updatedKeys)
+    val updateParameters = Document("$set" -> document)
+
+    context.collection.updateOne(query, updateParameters).toFuture.map { result =>
+      if (result.getModifiedCount == 0) {
+        throw new MongoDBUpsertFailedException(s"Key update of document with keys $keys resulted in 0 changes.")
+      }
+
+      true
+    }
+  }
+
   private def genCreationDate(doc: Document): (String, String) = {
     "creationDate" -> Option(doc.getString("updateDate")).getOrElse(
       throw new RuntimeException(s"Could not insert document: No updateDate was generated in ${doc.toString}")

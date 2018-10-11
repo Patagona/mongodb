@@ -148,6 +148,40 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
       }
     }
 
+    "updating the keys of an existing object" should {
+      "add new keys" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+
+        crud
+          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .flatMap { _ =>
+            crud.updateKeys(Map("key" -> "value"), Map("other_key" -> "other_value"))
+          }
+          .flatMap { _ =>
+            crud.read[String](Map("key" -> "value", "other_key" -> "other_value"))(_ => "")
+          }
+          .map { retrievedValue =>
+            retrievedValue must be(Some(Map("key" -> "value", "other_key" -> "other_value"), "new data"))
+          }
+      }
+
+      "update existing keys" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+
+        crud
+          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .flatMap { _ =>
+            crud.updateKeys(Map("key" -> "value"), Map("key" -> "other_value"))
+          }
+          .flatMap { _ =>
+            crud.read[String](Map("key" -> "other_value"))(_ => "")
+          }
+          .map { retrievedValue =>
+            retrievedValue must be(Some(Map("key" -> "other_value"), "new data"))
+          }
+      }
+    }
+
     "upserting one object" should {
       "insert the document" in withMongoDB { db =>
         implicit val context: DBContext = DBContext(db, "test", "1")

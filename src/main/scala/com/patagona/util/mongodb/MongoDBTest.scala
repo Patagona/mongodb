@@ -21,7 +21,7 @@ trait MongoDBTest {
   def withMongoDBSetup[A](f: (MongoDatabase, MongoDBConfig) => A): A = {
     val dbName = "test-" + UUID.randomUUID().toString
     val config =
-      MongoDBConfig(sys.env.getOrElse("patagona_test_mongodb_host", "localhost"), 27017, dbName, replication = false)
+      MongoDBConfig(sys.env.getOrElse("patagona_test_mongodb_host", "localhost"), 27017, dbName)
     val mongoClient = MongoDBConfig.createAsyncClient(config)
 
     try {

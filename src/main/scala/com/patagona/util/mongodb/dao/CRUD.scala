@@ -1,10 +1,11 @@
 package com.patagona.util.mongodb.dao
 
+import com.mongodb.MongoWriteException
+import com.patagona.util.mongodb.exceptions.MongoDBExceptions.{DuplicateKeyException, UpsertFailedException}
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.mongodb.scala._
 import org.mongodb.scala.model.Filters._
-import com.patagona.util.mongodb.exceptions.MongoDBUpsertFailedException
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.bson.BsonString
 import org.mongodb.scala.bson.BsonArray
@@ -43,51 +44,41 @@ trait CRUD {
     require(!keys.contains("id"), "Internal mongodb identifier is not allowed as key")
     val document = prepareDocument(keys, context.schemaVersion, data, conversion)
 
-    context.collection.insertOne(document + genCreationDate(document)).toFuture.map(_ => data)
+    context.collection
+      .insertOne(document + genCreationDate(document))
+      .toFuture
+      .map(_ => data)
+      .recover(mongoExceptionHandler)
   }
 
   def upsert[A <: AnyRef](
     keys: Map[String, String]
-  )(data: A)(conversion: A => BsonValue)(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
+  )(data: A, updatedKeys: Map[String, String] = Map.empty)(
+    conversion: A => BsonValue
+  )(implicit context: DBContext, ec: ExecutionContext): Future[A] = {
     require(keys.nonEmpty, "Keys must not be empty when updating a document")
     require(!keys.contains("id"), "Internal mongodb identifier is not allowed as key")
+
+    require(!updatedKeys.contains("id"), "Internal mongodb identifier is not allowed as new key")
+
     val query = buildQuery(keys)
-    val document = prepareDocument(keys, context.schemaVersion, data, conversion)
+    val document = prepareDocument(keys ++ updatedKeys, context.schemaVersion, data, conversion)
     val upsertParameters = Document(
       "$set" -> document,
       "$setOnInsert" -> Document(genCreationDate(document))
     )
 
-    context.collection.updateOne(query, upsertParameters, UpdateOptions().upsert(true)).toFuture.map { result =>
-      if (Option(result.getUpsertedId).isEmpty && result.getModifiedCount == 0) {
-        throw new MongoDBUpsertFailedException(s"Upsert of document with keys $keys resulted in 0 changes.")
+    context.collection
+      .updateOne(query, upsertParameters, UpdateOptions().upsert(true))
+      .toFuture
+      .map { result =>
+        if (Option(result.getUpsertedId).isEmpty && result.getModifiedCount == 0) {
+          throw UpsertFailedException(s"Upsert of document with keys $keys resulted in 0 changes.")
+        }
+
+        data
       }
-
-      data
-    }
-  }
-
-  def updateKeys(
-    keys: Map[String, String],
-    updatedKeys: Map[String, String]
-  )(implicit context: DBContext, ec: ExecutionContext): Future[Boolean] = {
-    require(keys.nonEmpty, "Keys must not be empty when updating a document")
-    require(!keys.contains("id"), "Internal mongodb identifier is not allowed as key")
-
-    require(updatedKeys.nonEmpty, "New keys must not be empty when updating a document")
-    require(!updatedKeys.contains("id"), "Internal mongodb identifier is not allowed as new key")
-
-    val query = buildQuery(keys)
-    val document = buildQuery(updatedKeys)
-    val updateParameters = Document("$set" -> document)
-
-    context.collection.updateOne(query, updateParameters).toFuture.map { result =>
-      if (result.getModifiedCount == 0) {
-        throw new MongoDBUpsertFailedException(s"Key update of document with keys $keys resulted in 0 changes.")
-      }
-
-      true
-    }
+      .recover(mongoExceptionHandler)
   }
 
   private def genCreationDate(doc: Document): (String, String) = {
@@ -220,6 +211,11 @@ trait CRUD {
     extractMatchedValues(cleanedKeys)(doc).map(transformKey(unescapeKey))
   }
 
+  private def mongoExceptionHandler[A]: PartialFunction[Throwable, A] = {
+    // Duplicate key error
+    case e: MongoWriteException if e.getError.getCode == 11000 =>
+      throw DuplicateKeyException(e)
+  }
 }
 
 case class DBContext(db: MongoDatabase, collectionName: String, schemaVersion: String) {

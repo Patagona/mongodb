@@ -1,11 +1,12 @@
 package com.patagona.util.mongodb.dao
 
 import com.patagona.util.mongodb.MongoDBAsyncTest
+import com.patagona.util.mongodb.exceptions.MongoDBExceptions.DuplicateKeyException
 import org.joda.time.DateTime
 import org.mongodb.scala.bson.BsonValue
 import org.mongodb.scala.bson.collection.immutable.Document
-import org.scalatest.AsyncWordSpec
-import org.scalatest.MustMatchers
+import org.mongodb.scala.model.IndexOptions
+import org.scalatest.{AsyncWordSpec, MustMatchers}
 import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.ExecutionContext
@@ -15,6 +16,14 @@ import scala.concurrent.Future
 class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest with ScalaFutures {
   val ec: ExecutionContext = global
   val crud: CRUD = new CRUD {}
+
+  def withIndex[A](
+    unique: Boolean = true
+  )(fields: (String, Int)*)(f: => Future[A])(implicit context: DBContext): Future[A] = {
+    context.collection.createIndex(Document(fields), new IndexOptions().unique(unique)).head().flatMap { _ =>
+      f
+    }
+  }
 
   "CRUD" when {
     "reading one object" should {
@@ -146,6 +155,19 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
             creationDate must be(updateDate)
           }
       }
+
+      "throw DuplicateKeyExceptions" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+        recoverToSucceededIf[DuplicateKeyException] {
+          withIndex()("_key" -> 1) {
+            crud
+              .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+              .flatMap { _ =>
+                crud.insert[String](Map("key" -> "value"))("new data")(_.serialize)
+              }
+          }
+        }
+      }
     }
 
     "updating the keys of an existing object" should {
@@ -153,15 +175,17 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
         implicit val context: DBContext = DBContext(db, "test", "1")
 
         crud
-          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .insert[String](Map("key" -> "value"))("some data")(_.serialize)
           .flatMap { _ =>
-            crud.updateKeys(Map("key" -> "value"), Map("other_key" -> "other_value"))
+            crud.upsert(Map("key" -> "value"))("new data", Map("other_key" -> "other_value"))(_.serialize)
           }
           .flatMap { _ =>
             crud.read[String](Map("key" -> "value", "other_key" -> "other_value"))(_ => "")
           }
           .map { retrievedValue =>
-            retrievedValue must be(Some(Map("key" -> "value", "other_key" -> "other_value"), "new data"))
+            retrievedValue must be('defined)
+            retrievedValue.get._1 must contain theSameElementsAs Map("key" -> "value", "other_key" -> "other_value")
+            retrievedValue.get._2 must be("new data")
           }
       }
 
@@ -169,15 +193,19 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
         implicit val context: DBContext = DBContext(db, "test", "1")
 
         crud
-          .insert[String](Map("key" -> "value"))("new data")(_.serialize)
+          .insert[String](Map("key" -> "value"))("some data")(_.serialize)
           .flatMap { _ =>
-            crud.updateKeys(Map("key" -> "value"), Map("key" -> "other_value"))
+            crud.upsert(Map("key" -> "value"))("new data", Map("key" -> "other_value", "other key" -> "value"))(
+              _.serialize
+            )
           }
           .flatMap { _ =>
-            crud.read[String](Map("key" -> "other_value"))(_ => "")
+            crud.read[String](Map("key" -> "other_value", "other key" -> "value"))(_ => "")
           }
           .map { retrievedValue =>
-            retrievedValue must be(Some(Map("key" -> "other_value"), "new data"))
+            retrievedValue must be('defined)
+            retrievedValue.get._1 must contain theSameElementsAs Map("key" -> "other_value", "other key" -> "value")
+            retrievedValue.get._2 must be("new data")
           }
       }
     }
@@ -193,6 +221,22 @@ class CRUDSpec extends AsyncWordSpec with MustMatchers with MongoDBAsyncTest wit
           .map { retrievedValue =>
             retrievedValue must be(Some(Map("key" -> "value"), "new data"))
           }
+      }
+
+      "throw DuplicateKeyExceptions" in withMongoDB { db =>
+        implicit val context: DBContext = DBContext(db, "test", "1")
+        recoverToSucceededIf[DuplicateKeyException] {
+          withIndex()("data" -> 1) {
+            crud
+              .insert[String](Map("key" -> "value"))("some data")(_.serialize)
+              .flatMap { _ =>
+                crud.insert[String](Map("key" -> "other value"))("other data")(_.serialize)
+              }
+              .flatMap { _ =>
+                crud.upsert[String](Map("key" -> "value"))("other data")(_.serialize)
+              }
+          }
+        }
       }
 
       "set creationDate only once" in withMongoDB { db =>

@@ -6,7 +6,9 @@ resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/release
 
 // resolvers += "Sonatype snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/"
 
-resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt/sbt-plugin-releases/"))(Resolver.ivyStylePatterns)
+resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt/sbt-plugin-releases/"))(
+  Resolver.ivyStylePatterns
+)
 
 // s3-sbt-plugin
 resolvers += "Era7 maven releases" at "http://releases.era7.com.s3.amazonaws.com"
@@ -22,4 +24,6 @@ addSbtPlugin("com.lucidchart" % "sbt-scalafmt-coursier" % "1.15")
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
 
 lazy val root = (project in file(".")).dependsOn(codeStyleSettingsPlugin)
-lazy val codeStyleSettingsPlugin = uri("https://github.com/Patagona/code-style-settings-plugin.git#3d5f25cf176e214560a07b107f9cf7538f7cbb22")
+lazy val codeStyleSettingsPlugin = uri(
+  "https://github.com/Patagona/code-style-settings-plugin.git#3d5f25cf176e214560a07b107f9cf7538f7cbb22"
+)

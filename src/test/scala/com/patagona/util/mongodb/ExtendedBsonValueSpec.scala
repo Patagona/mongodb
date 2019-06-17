@@ -84,8 +84,8 @@ class ExtendedBsonValueSpec
     val collection = db.getCollection("ExtendedObject")
     val expectedObject = TestClassWithDate(DateTime.parse("2016-04-14T13:27:32.779Z"))
 
-    whenCompleted(collection.insertOne(BsonDocument("creationDate" -> expectedObject.creationDate.toDate))) { _ =>
-      whenFound(collection.find()) { docs =>
+    whenSingleCompleted(collection.insertOne(BsonDocument("creationDate" -> expectedObject.creationDate.toDate))) { _ =>
+      whenFindCompleted(collection.find()) { docs =>
         docs must have size 1
 
         val doc = docs.head
@@ -106,8 +106,8 @@ class ExtendedBsonValueSpec
     val collection = db.getCollection("ExtendedObject")
     val expectedObject = TestClassWithDate(DateTime.parse("2016-04-14T13:27:32.779Z"))
 
-    whenCompleted(collection.insertOne(ExtendedObject(expectedObject).serialize.asDocument())) { _ =>
-      whenFound(collection.find()) { docs =>
+    whenSingleCompleted(collection.insertOne(ExtendedObject(expectedObject).serialize.asDocument())) { _ =>
+      whenFindCompleted(collection.find()) { docs =>
         docs must have size 1
 
         ExtendedBsonValue(docs.head.toBsonDocument).deserialize[TestClassWithDate] must be(expectedObject)

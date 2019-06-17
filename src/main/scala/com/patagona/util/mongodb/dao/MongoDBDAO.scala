@@ -28,14 +28,17 @@ trait MongoDBDAO {
   implicit def extendedObject(o: Any): ExtendedObject = ExtendedObject(o)
 
   def safeSet(fields: (String, Any)*): Bson = {
-    val cleanedFields = fields.filter {
-      case (_, null) => false // scalastyle:ignore
-      case (_, None) => false
-      case _ => true
-    }
+    val (cleanedFields, unsetFields) = fields.partition(Function.tupled(shouldBeSet))
 
     combine(cleanedFields.map {
       case (field, value) => set(field, value)
+    } ++ unsetFields.map {
+      case (field, _) =>
+        unset(field)
     }: _*)
+  }
+
+  private def shouldBeSet(key: String, value: Any): Boolean = {
+    value != None && value != null
   }
 }

@@ -36,10 +36,13 @@ pipeline {
 
         stage('Test') {
             steps{
+                sh "docker-compose -f tests/docker-compose.yaml rm -f"
+                sh "docker-compose -f tests/docker-compose.yaml up -d"
                 sh 'sbt ${SBT_FLAGS} test'
             }
             post {
                 always {
+                    sh "docker-compose -f tests/docker-compose.yaml down"
                     junit '**/target/test-reports/*.xml'
                 }
             }

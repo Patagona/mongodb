@@ -6,7 +6,7 @@ def docker_tag = "${branch_part}-${version}"
 currentBuild.displayName = version
 
 pipeline {
-    agent { node { label 'build'}}
+    agent { node { label 'build-v3'}}
 
     options{
         disableConcurrentBuilds()

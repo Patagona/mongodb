@@ -11,7 +11,7 @@ resolvers += Resolver.url("bintray-sbt-plugins", url("https://dl.bintray.com/sbt
 )
 
 // s3-sbt-plugin
-resolvers += "Era7 maven releases" at "http://releases.era7.com.s3.amazonaws.com"
+resolvers += "Era7 maven releases" at "https://s3-eu-west-1.amazonaws.com/releases.era7.com"
 
 addSbtPlugin("ohnosequences" % "sbt-s3-resolver" % "0.15.0")
 

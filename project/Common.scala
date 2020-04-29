@@ -12,6 +12,6 @@ object Versions {
   def log4j: String = "2.11.0"
   def jackson: String = "2.8.11"
   def log4j2LogstashLayout: String = "0.10"
-  def guice: String = "4.0-beta5"
+  def guice: String = "4.1.0"
   val patagonaApi = "0.0.3725"
 }
